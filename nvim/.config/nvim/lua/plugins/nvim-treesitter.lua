@@ -6,7 +6,7 @@ return {
 
         configs.setup({
             ensure_installed = { 
-                "lua", "markdown"
+                "lua", "markdown", "python"
             },
             auto_install = true,
             sync_install = false,
