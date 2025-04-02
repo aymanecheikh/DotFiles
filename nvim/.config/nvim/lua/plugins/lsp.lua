@@ -2,38 +2,29 @@ return {
 	{
 		-- Main LSP Configuration
 		"neovim/nvim-lspconfig",
+		lazy = false,
 		dependencies = {
-			-- Automatically install LSPs and related tools to stdpath for Neovim
-			-- Mason must be loaded before its dependents so we need to set it up here.
-			-- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
 			{ "williamboman/mason.nvim", opts = {} },
 			"williamboman/mason-lspconfig.nvim",
 			"WhoIsSethDaniel/mason-tool-installer.nvim",
-
-			-- Useful status updates for LSP.
 			{ "j-hui/fidget.nvim", opts = {} },
-
-			-- Allows extra capabilities provided by nvim-cmp
 			"hrsh7th/cmp-nvim-lsp",
 		},
 		config = function()
-			-- Brief aside: **What is LSP?**
-			-- LSP stands for Language Server Protocol. It's a protocol that helps editors
-			-- and language tooling communicate in a standardized fashion.
-			--
-			-- In general, you have a "server" which is some tool built to understand a particular
-			-- language (such as `gopls`, `lua_ls`, `rust_analyzer`, etc.). These Language Servers
-			-- are standalone processes that communicate with some "client" - in this case, Neovim!
-			--
-			-- LSP provides Neovim with features like:
-			--  - Go to definition
-			--  - Find references
-			--  - Autocompletion
-			--  - Symbol Search
-			--  - and more!
-			--
-			-- Thus, Language Servers are external tools that must be installed separately from
-			-- Neovim. This is where `mason` and related plugins come into play.
+			-- 🔧 Schedule theme_check registration to ensure lspconfig is fully ready
+			vim.schedule(function()
+				local lspconfig = require("lspconfig")
+				if not lspconfig.configs.theme_check then
+					lspconfig.configs.theme_check = {
+						default_config = {
+							cmd = { "theme-check-language-server", "--stdio" },
+							filetypes = { "liquid" },
+							root_dir = lspconfig.util.root_pattern("config.yml", ".git"),
+							settings = {},
+						},
+					}
+				end
+			end)
 
 			vim.api.nvim_create_autocmd("LspAttach", {
 				group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
@@ -137,6 +128,7 @@ return {
 						},
 					},
 				},
+				theme_check = {},
 			}
 
 			local ensure_installed = vim.tbl_keys(servers or {})
@@ -159,11 +151,9 @@ return {
 
 	{
 		-- Completion Plugin (nvim-cmp)
-		-- This is the main autocompletion engine. It works with LSP, buffer, paths, and snippets.
 		"hrsh7th/nvim-cmp",
 		event = "InsertEnter",
 		dependencies = {
-			-- Completion sources
 			"hrsh7th/cmp-nvim-lsp",
 			"hrsh7th/cmp-buffer",
 			"hrsh7th/cmp-path",
@@ -174,16 +164,12 @@ return {
 			local cmp = require("cmp")
 			local luasnip = require("luasnip")
 
-			-- Setup nvim-cmp
 			cmp.setup({
-				-- Configure how snippets are expanded
 				snippet = {
 					expand = function(args)
 						luasnip.lsp_expand(args.body)
 					end,
 				},
-
-				-- Key mappings for completion actions
 				mapping = cmp.mapping.preset.insert({
 					["<C-Space>"] = cmp.mapping.complete(),
 					["<CR>"] = cmp.mapping.confirm({ select = true }),
@@ -206,8 +192,6 @@ return {
 						end
 					end, { "i", "s" }),
 				}),
-
-				-- Define completion sources
 				sources = cmp.config.sources({
 					{ name = "nvim_lsp" },
 					{ name = "luasnip" },
